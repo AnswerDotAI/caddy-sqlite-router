@@ -9,6 +9,7 @@ import (
 	"github.com/caddyserver/caddy/v2/caddyconfig/caddyfile"
 	"github.com/caddyserver/caddy/v2/caddyconfig/httpcaddyfile"
 	"github.com/caddyserver/caddy/v2/modules/caddyhttp"
+	"go.uber.org/zap"
 	_ "modernc.org/sqlite"
 )
 
@@ -21,6 +22,7 @@ type SQLiteRouter struct{
 	DBPath string `json:"db_path,omitempty"`
 	Query string `json:"query,omitempty"`
 	db *sql.DB
+	logger *zap.Logger
 }
 
 func (SQLiteRouter) CaddyModule() caddy.ModuleInfo {
@@ -28,6 +30,7 @@ func (SQLiteRouter) CaddyModule() caddy.ModuleInfo {
 }
 
 func (m *SQLiteRouter) Provision(ctx caddy.Context) error {
+	m.logger = ctx.Logger(m)
 	var err error
 	m.db, err = sql.Open("sqlite", m.DBPath)
 	return err
@@ -48,13 +51,16 @@ func parseCaddyfile(h httpcaddyfile.Helper) (caddyhttp.MiddlewareHandler, error)
 
 func (m SQLiteRouter) ServeHTTP(w http.ResponseWriter, r *http.Request, next caddyhttp.Handler) error {
 	subdomain := strings.Split(strings.Split(r.Host, ".")[0], ":")[0]
+	m.logger.Info("extracted subdomain", zap.String("subdomain", subdomain), zap.String("host", r.Host))
 	var host string
 	var port int
 	if err := m.db.QueryRow(m.Query, subdomain).Scan(&host, &port); err != nil {
+		m.logger.Error("database query failed", zap.Error(err), zap.String("subdomain", subdomain))
 		http.Error(w, "Not found", http.StatusNotFound)
 		return nil
 	}
 	upstream := fmt.Sprintf("%s:%d", host, port)
+	m.logger.Info("routing request", zap.String("subdomain", subdomain), zap.String("upstream", upstream))
 	caddyhttp.SetVar(r.Context(), "backend_upstream", upstream)
 	return next.ServeHTTP(w, r)
 }

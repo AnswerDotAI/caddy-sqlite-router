@@ -1,0 +1,11 @@
+{
+    order sqlite_router before reverse_proxy
+    log {
+        level INFO
+    }
+}
+
+*.localhost:9090 {
+    sqlite_router test.db "SELECT host, port FROM route WHERE domain = ?"
+    reverse_proxy {http.vars.backend_upstream}
+}
