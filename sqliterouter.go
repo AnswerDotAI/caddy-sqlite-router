@@ -24,6 +24,7 @@ type SQLiteRouter struct{
 	DBPath string `json:"db_path,omitempty"`
 	Query string `json:"query,omitempty"`
 	db *sql.DB
+	stmt *sql.Stmt
 	logger *zap.Logger
 }
 
@@ -38,10 +39,17 @@ func (m *SQLiteRouter) Provision(ctx caddy.Context) error {
 	if err != nil {
 		return err
 	}
-	return m.db.PingContext(context.Background())
+	if err := m.db.PingContext(context.Background()); err != nil {
+		return err
+	}
+	m.stmt, err = m.db.PrepareContext(context.Background(), m.Query)
+	return err
 }
 
 func (m *SQLiteRouter) Cleanup() error {
+	if m.stmt != nil {
+		m.stmt.Close()
+	}
 	return m.db.Close()
 }
 
@@ -63,7 +71,7 @@ func (m SQLiteRouter) ServeHTTP(w http.ResponseWriter, r *http.Request, next cad
 	m.logger.Info("extracted subdomain", zap.String("subdomain", subdomain), zap.String("host", r.Host))
 	var host string
 	var port int
-	if err := m.db.QueryRowContext(r.Context(), m.Query, subdomain).Scan(&host, &port); err != nil {
+	if err := m.stmt.QueryRowContext(r.Context(), subdomain).Scan(&host, &port); err != nil {
 		m.logger.Error("database query failed", zap.Error(err), zap.String("subdomain", subdomain))
 		if errors.Is(err, sql.ErrNoRows) {
 			http.Error(w, "Not found", http.StatusNotFound)
