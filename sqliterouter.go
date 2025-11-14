@@ -63,7 +63,7 @@ func (m SQLiteRouter) ServeHTTP(w http.ResponseWriter, r *http.Request, next cad
 	m.logger.Info("extracted subdomain", zap.String("subdomain", subdomain), zap.String("host", r.Host))
 	var host string
 	var port int
-	if err := m.db.QueryRow(m.Query, subdomain).Scan(&host, &port); err != nil {
+	if err := m.db.QueryRowContext(r.Context(), m.Query, subdomain).Scan(&host, &port); err != nil {
 		m.logger.Error("database query failed", zap.Error(err), zap.String("subdomain", subdomain))
 		if errors.Is(err, sql.ErrNoRows) {
 			http.Error(w, "Not found", http.StatusNotFound)
