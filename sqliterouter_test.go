@@ -10,9 +10,11 @@ import (
 	"github.com/caddyserver/caddy/v2/caddyconfig/caddyfile"
 )
 
+const testQuery = "SELECT host, port FROM route WHERE domain = ?"
+
 func TestUnmarshalCaddyfile(t *testing.T) {
 	dbPath := "test.db"
-	query := "SELECT host, port FROM route WHERE subdomain = ?"
+	query := testQuery
 	config := "sqlite_router " + dbPath + " " + `"` + query + `"`
 	dispenser := caddyfile.NewTestDispenser(config)
 	sr := new(SQLiteRouter)
@@ -29,7 +31,7 @@ func TestProvision(t *testing.T) {
 }
 
 func TestProvisionInvalidDB(t *testing.T) {
-	sr := &SQLiteRouter{DBPath: "/nonexistent/path/database.db", Query: "SELECT host, port FROM routes WHERE domain = ?"}
+	sr := &SQLiteRouter{DBPath: "/nonexistent/path/database.db", Query: testQuery}
 	err := sr.Provision(caddy.Context{})
 	if err == nil {
 		t.Error("Expected Provision to fail with invalid database path, got nil")
@@ -44,7 +46,6 @@ func TestCleanup(t *testing.T) {
 	if err := sr.Cleanup(); err != nil {
 		t.Errorf("Cleanup failed: %v", err)
 	}
-	// Try to ping after cleanup - should fail with closed connection error
 	err := sr.db.Ping()
 	if err == nil {
 		t.Error("Expected error when pinging closed database, got nil")

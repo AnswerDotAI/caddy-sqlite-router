@@ -36,14 +36,12 @@ func (SQLiteRouter) CaddyModule() caddy.ModuleInfo {
 func (m *SQLiteRouter) Provision(ctx caddy.Context) error {
 	m.logger = ctx.Logger(m)
 	var err error
-	// Open with read-only mode and busy timeout
 	dsn := m.DBPath + "?mode=ro&_pragma=busy_timeout(3000)"
 	m.db, err = sql.Open("sqlite", dsn)
 	if err != nil {
 		return err
 	}
 	
-	// Configure connection pool
 	maxConns := runtime.NumCPU()
 	m.db.SetMaxOpenConns(maxConns)
 	m.db.SetMaxIdleConns(maxConns)
