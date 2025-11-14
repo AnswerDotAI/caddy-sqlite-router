@@ -7,9 +7,8 @@ from dataclasses import dataclass
 class Route: domain:str; host:str; port:int
 
 print("Creating test.db...")
-dbp = Path('test.db')
-if dbp.exists(): dbp.unlink()
-db = database(dbp)
+Path('test.db').unlink(missing_ok=True)
+db = database('test.db')
 routes = db.create(Route, pk='domain')
 routes.insert(dict(domain='app1', host='localhost', port=8001))
 routes.insert(dict(domain='app2', host='localhost', port=8002))
@@ -29,12 +28,12 @@ try:
     assert resp.status_code == 200, "Python server not started!"
     resp = httpx.get('http://localhost:2019/config/', timeout=5)
     assert resp.status_code == 200, "Caddy not started!"
-    resp = httpx.get('http://app1.localhost:9090', timeout=5)
+    resp = httpx.get('https://app1.localhost:9090', timeout=5, verify=False)
     assert resp.status_code == 200, "Test failed!"
+    print("Test passed!")
 finally:
-    # caddy_proc.terminate()
-    # backend_proc.terminate()
-    # caddy_proc.wait()
-    # backend_proc.wait()
-    # dbp.unlink()
-    pass
+    caddy_proc.terminate()
+    backend_proc.terminate()
+    caddy_proc.wait()
+    backend_proc.wait()
+    for p in Path('./').glob("test.db*"): p.unlink(missing_ok=True)
