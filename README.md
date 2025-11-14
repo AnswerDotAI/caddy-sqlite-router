@@ -2,7 +2,7 @@
 
 A Caddy module that routes requests based on subdomain lookups in a SQLite database.
 
-## Installation
+## Usage
 
 Build Caddy with this module using `xcaddy`:
 
@@ -10,54 +10,44 @@ Build Caddy with this module using `xcaddy`:
 xcaddy build --with github.com/AnswerDotAI/caddy-sqlite-router
 ```
 
-## Configuration
-
-### JSON API
-
-Example: 
-
-```json
-{
-  "handler": "sqlite_router",
-  "db_path": "/path/to/database.db",
-  "query": "SELECT host, port FROM routes WHERE domain = ?"
-}
-```
-
-### Caddyfile
-
-```
-sqlite_router /path/to/database.db "SELECT host, port FROM routes WHERE domain = ?"
-```
-
-## Usage
-
 The module extracts the subdomain from incoming requests and queries your database. Your query must:
 - Accept exactly one parameter (the subdomain)
 - Return exactly two columns: host (string) and port (integer)
 
-The module sets the `backend_upstream` variable which can be used by reverse_proxy:
-
-```json
-{
-  "handler": "reverse_proxy",
-  "upstreams": [{"dial": "{http.vars.backend_upstream}"}]
-}
-```
-
-## Example Database Schema
+Example Database Schema:
 
 ```sql
-CREATE TABLE routes (
+CREATE TABLE route (
   domain TEXT PRIMARY KEY,
   host TEXT NOT NULL,
   port INTEGER NOT NULL
 );
 
-INSERT INTO routes VALUES ('app1', 'localhost', 8001);
-INSERT INTO routes VALUES ('app2', 'localhost', 8002);
+INSERT INTO route VALUES ('app1', 'localhost', 8001);
+INSERT INTO route VALUES ('app2', 'localhost', 8002);
 ```
+
+The module sets the `backend_upstream` variable which can be used by reverse_proxy.
+
+Example Caddyfile:
+
+```caddyfile
+*.localhost:9090 {
+    route {
+        sqlite_router test.db "SELECT host, port FROM route WHERE domain = ?"
+        reverse_proxy {http.vars.backend_upstream}
+    }
+}
+```
+
+This will reverse proxy visits to `https://app1.localhost:9090` to `localhost:8001`.
+
+## Testing
+
+1. Create the test database by running `python mkdb.py` with a python virtual environment that has `fastlite` installed.
+2. Run `go test -v` to run the unit tests.
+3. Run `python test_e2e.py` to run the end to end test.
 
 ## License
 
-MIT
+Apache-2.0
