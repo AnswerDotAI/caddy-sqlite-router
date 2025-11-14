@@ -3,6 +3,7 @@ package sqliterouter
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -64,7 +65,11 @@ func (m SQLiteRouter) ServeHTTP(w http.ResponseWriter, r *http.Request, next cad
 	var port int
 	if err := m.db.QueryRow(m.Query, subdomain).Scan(&host, &port); err != nil {
 		m.logger.Error("database query failed", zap.Error(err), zap.String("subdomain", subdomain))
-		http.Error(w, "Not found", http.StatusNotFound)
+		if errors.Is(err, sql.ErrNoRows) {
+			http.Error(w, "Not found", http.StatusNotFound)
+		} else {
+			http.Error(w, "Database error", http.StatusBadGateway)
+		}
 		return nil
 	}
 	upstream := fmt.Sprintf("%s:%d", host, port)

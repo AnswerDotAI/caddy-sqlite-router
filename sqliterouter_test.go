@@ -80,3 +80,23 @@ func TestServeHTTPNotFound(t *testing.T) {
 	if nextCalled { t.Error("Expected next handler NOT to be called for 404") }
 	if rec.Code != http.StatusNotFound { t.Errorf("Expected status 404, got %d", rec.Code) }
 }
+
+func TestServeHTTPDatabaseError(t *testing.T) {
+	sr, req, rec := setupTest(t, "http://app1.localhost/")
+	// Close the database to cause an error
+	sr.db.Close()
+	nextCalled := false
+	next := caddyhttp.HandlerFunc(func(w http.ResponseWriter, r *http.Request) error { 
+		nextCalled = true
+		return nil 
+	})
+	if err := sr.ServeHTTP(rec, req, next); err != nil { 
+		t.Errorf("ServeHTTP failed: %v", err) 
+	}
+	if nextCalled { 
+		t.Error("Expected next handler NOT to be called for database error") 
+	}
+	if rec.Code != http.StatusBadGateway { 
+		t.Errorf("Expected status 502 (Bad Gateway), got %d", rec.Code) 
+	}
+}
