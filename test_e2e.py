@@ -1,6 +1,6 @@
 import subprocess, time, httpx
 
-subprocess.run(['/Users/rensdimmendaal/go/bin/xcaddy', 'build', '--with', 'github.com/AnswerDotAI/caddy-sqlite-router=.'], check=True)
+subprocess.run(['xcaddy', 'build', '--with', 'github.com/AnswerDotAI/caddy-sqlite-router=.'], check=True)
 backend_proc = subprocess.Popen(['python', '-m', 'http.server', '8001'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 caddy_proc = subprocess.Popen(['sudo','./caddy', 'run', '--config', 'Caddyfile_test'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 time.sleep(2)
