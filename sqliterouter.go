@@ -1,6 +1,7 @@
 package sqliterouter
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"net/http"
@@ -33,7 +34,14 @@ func (m *SQLiteRouter) Provision(ctx caddy.Context) error {
 	m.logger = ctx.Logger(m)
 	var err error
 	m.db, err = sql.Open("sqlite", m.DBPath)
-	return err
+	if err != nil {
+		return err
+	}
+	return m.db.PingContext(context.Background())
+}
+
+func (m *SQLiteRouter) Cleanup() error {
+	return m.db.Close()
 }
 
 func (m *SQLiteRouter) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {

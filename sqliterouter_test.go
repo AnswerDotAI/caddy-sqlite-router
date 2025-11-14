@@ -12,7 +12,7 @@ import (
 
 func TestUnmarshalCaddyfile(t *testing.T) {
 	dbPath := "test.db"
-	query := "SELECT host, port FROM routes WHERE subdomain = ?"
+	query := "SELECT host, port FROM route WHERE subdomain = ?"
 	config := "sqlite_router " + dbPath + " " + `"` + query + `"`
 	dispenser := caddyfile.NewTestDispenser(config)
 	sr := new(SQLiteRouter)
@@ -23,13 +23,36 @@ func TestUnmarshalCaddyfile(t *testing.T) {
 }
 
 func TestProvision(t *testing.T) {
-	sr := &SQLiteRouter{DBPath: "test.db", Query: "SELECT host, port FROM routes WHERE domain = ?"}
+	sr := &SQLiteRouter{DBPath: "test.db", Query: "SELECT host, port FROM route WHERE domain = ?"}
 	if err := sr.Provision(caddy.Context{}); err != nil { t.Errorf("Provision failed: %v", err) }
 	if sr.db == nil { t.Error("Expected db to be initialized after Provision") }
 }
 
+func TestProvisionInvalidDB(t *testing.T) {
+	sr := &SQLiteRouter{DBPath: "/nonexistent/path/database.db", Query: "SELECT host, port FROM routes WHERE domain = ?"}
+	err := sr.Provision(caddy.Context{})
+	if err == nil {
+		t.Error("Expected Provision to fail with invalid database path, got nil")
+	}
+}
+
+func TestCleanup(t *testing.T) {
+	sr := &SQLiteRouter{DBPath: "test.db", Query: "SELECT host, port FROM route WHERE domain = ?"}
+	if err := sr.Provision(caddy.Context{}); err != nil {
+		t.Fatalf("Provision failed: %v", err)
+	}
+	if err := sr.Cleanup(); err != nil {
+		t.Errorf("Cleanup failed: %v", err)
+	}
+	// Try to ping after cleanup - should fail with closed connection error
+	err := sr.db.Ping()
+	if err == nil {
+		t.Error("Expected error when pinging closed database, got nil")
+	}
+}
+
 func setupTest(t *testing.T, url string) (*SQLiteRouter, *http.Request, *httptest.ResponseRecorder) {
-	sr := &SQLiteRouter{DBPath: "test.db", Query: "SELECT host, port FROM routes WHERE domain = ?"}
+	sr := &SQLiteRouter{DBPath: "test.db", Query: "SELECT host, port FROM route WHERE domain = ?"}
 	if err := sr.Provision(caddy.Context{}); err != nil { t.Fatalf("Provision failed: %v", err) }
 	req := httptest.NewRequest("GET", url, nil)
 	req = req.WithContext(context.WithValue(req.Context(), caddyhttp.VarsCtxKey, make(map[string]any)))
