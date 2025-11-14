@@ -75,7 +75,6 @@ func parseCaddyfile(h httpcaddyfile.Helper) (caddyhttp.MiddlewareHandler, error)
 
 func (m SQLiteRouter) ServeHTTP(w http.ResponseWriter, r *http.Request, next caddyhttp.Handler) error {
 	subdomain := strings.Split(strings.Split(r.Host, ".")[0], ":")[0]
-	m.logger.Info("extracted subdomain", zap.String("subdomain", subdomain), zap.String("host", r.Host))
 	var host string
 	var port int
 	if err := m.stmt.QueryRowContext(r.Context(), subdomain).Scan(&host, &port); err != nil {
@@ -88,7 +87,6 @@ func (m SQLiteRouter) ServeHTTP(w http.ResponseWriter, r *http.Request, next cad
 		return nil
 	}
 	upstream := fmt.Sprintf("%s:%d", host, port)
-	m.logger.Info("routing request", zap.String("subdomain", subdomain), zap.String("upstream", upstream))
 	caddyhttp.SetVar(r.Context(), "backend_upstream", upstream)
 	return next.ServeHTTP(w, r)
 }
