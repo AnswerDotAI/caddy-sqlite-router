@@ -1,6 +1,6 @@
 *.localhost:9090 {
     route {
-        sqlite_router test.db "SELECT host, port FROM route WHERE domain = ?"
+        sqlite_router test.db "SELECT host, port FROM route WHERE domain =  :domain"
         reverse_proxy {http.vars.backend_upstream}
     }
 }
