@@ -42,6 +42,8 @@ Example Caddyfile:
 
 This will reverse proxy visits to `https://app1.localhost:9090` to `localhost:8001`.
 
+NB: In prod, you'll probably be running under the `caddy` user, so be sure that user has access to the DB.
+
 ## Testing
 
 1. Create the test database by running `python mkdb.py` with a python virtual environment that has `fastlite` installed.
