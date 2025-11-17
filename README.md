@@ -7,7 +7,7 @@ A Caddy module that routes requests based on subdomain lookups in a SQLite datab
 Build Caddy with this module using `xcaddy`:
 
 ```bash
-xcaddy build --with github.com/AnswerDotAI/caddy-sqlite-router
+CGO_ENABLED=1 xcaddy build --with github.com/AnswerDotAI/caddy-sqlite-router
 ```
 
 The module extracts the subdomain from incoming requests and queries your database. Your query must:
